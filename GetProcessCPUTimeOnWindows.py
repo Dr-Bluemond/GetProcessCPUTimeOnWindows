@@ -1,6 +1,7 @@
 import win32api
 import win32process
 import win32con
+import win32event
 import time
 
 # Reference: https://www.programcreek.com/python/example/8489/win32process.CreateProcess
@@ -30,16 +31,13 @@ hProcess, hThread, dwProcessId, dwThreadId = win32process.CreateProcess(
                 None,
                 StartupInfo)
 
-# waiting for subprocess to exit, using polling mode
-while win32process.GetExitCodeProcess(hProcess) == win32con.STILL_ACTIVE:
-    if time.time() - startTime > TIMEOUT:
-        print(time.time() - startTime)
-        win32api.TerminateProcess(hProcess, 0)
-    time.sleep(0.1) # there is no wait method in windows (maybe). the accuracy won't change if you raise this sleep time.
+# waiting for subprocess to exit
+win32event.WaitForSingleObject(hProcess, int(TIMEOUT * 1000))
+win32api.TerminateProcess(hProcess, 0)
+win32event.WaitForSingleObject(hProcess, win32event.INFINITE)
 
 # query cpu time using win32api
 sTime = win32process.GetProcessTimes(hProcess)
 # print(sTime)
 print(f"cputime: {(sTime['KernelTime'] + sTime['UserTime']) / 10000000}")
 print(f"realtime: {(sTime['ExitTime'] - sTime['CreationTime']).total_seconds()}")
-
